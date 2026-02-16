@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Meu Caderno IA</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; padding: 20px; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        button { padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-right: 10px; }
+        #start { background: #4f46e5; color: white; }
+        #stop { background: #ef4444; color: white; }
+        .library { margin-top: 30px; border-top: 2px solid #eee; padding-top: 20px; }
+        .note { background: #f9fafb; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 5px solid #4f46e5; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📓 Caderno Inteligente</h1>
+        <input type="text" id="subject" placeholder="Ex: Direito Constitucional" style="width: 90%; padding: 10px; margin-bottom: 20px;">
+        <div>
+            <button id="start">▶️ Iniciar Gravação</button>
+            <button id="stop" disabled>🛑 Parar e Gerar Resumo</button>
+        </div>
+        <p id="status">Status: Pronto para gravar</p>
+        <div class="library" id="library">
+            <h3>📚 Minha Biblioteca</h3>
+        </div>
+    </div>
+
+    <script>
+        let recognition;
+        let transcript = "";
+        
+        if ('webkitSpeechRecognition' in window) {
+            recognition = new webkitSpeechRecognition();
+            recognition.continuous = true;
+            recognition.lang = 'pt-BR';
+            recognition.onresult = (e) => {
+                for (let i = e.resultIndex; i < e.results.length; i++) {
+                    transcript += e.results[i][0].transcript;
+                }
+            };
+        }
+
+        document.getElementById('start').onclick = () => {
+            transcript = "";
+            recognition.start();
+            document.getElementById('status').innerText = "🔴 Gravando áudio da aula...";
+            document.getElementById('start').disabled = true;
+            document.getElementById('stop').disabled = false;
+        };
+
+        document.getElementById('stop').onclick = async () => {
+            recognition.stop();
+            document.getElementById('status').innerText = "⏳ IA processando anotações...";
+            
+            const disc = document.getElementById('subject').value || "Geral";
+            
+            // Chama a API que vamos criar no Vercel
+            const response = await fetch('/api/process', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ transcription: transcript, discipline: disc })
+            });
+            
+            const data = await response.json();
+            addNoteToLibrary(disc, data.result);
+            document.getElementById('status').innerText = "✅ Concluído!";
+            document.getElementById('start').disabled = false;
+            document.getElementById('stop').disabled = true;
+        };
+
+        function addNoteToLibrary(disc, text) {
+            const div = document.createElement('div');
+            div.className = 'note';
+            div.innerHTML = `<strong>${disc}</strong><pre style="white-space: pre-wrap;">${text}</pre>`;
+            document.getElementById('library').appendChild(div);
+        }
+    </script>
+</body>
+</html>
