@@ -7,34 +7,42 @@
         :root { --primary: #1e293b; --accent: #4f46e5; --bg: #f8fafc; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); padding: 20px; color: #334155; }
         .container { max-width: 1100px; margin: auto; background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
-        .header { text-align: center; border-bottom: 2px solid #e2e8f0; margin-bottom: 25px; padding-bottom: 20px; }
-        .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
-        button { padding: 15px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.2s; }
-        .btn-video { background: #0284c7; color: white; }
+        .header { text-align: center; border-bottom: 2px solid #e2e8f0; margin-bottom: 20px; padding-bottom: 15px; }
+        .config-panel { background: #f1f5f9; padding: 20px; border-radius: 12px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 15px; border: 1px solid #e2e8f0; }
+        .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        button { padding: 15px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.2s; font-size: 15px; }
         .btn-audio { background: #4f46e5; color: white; }
-        .btn-stop { background: #be123c; color: white; width: 100%; margin-bottom: 15px; }
-        .main-layout { display: flex; gap: 20px; margin-top: 30px; min-height: 400px; }
+        .btn-video { background: #0284c7; color: white; }
+        .btn-stop { background: #be123c; color: white; width: 100%; margin-top: 15px; }
+        .main-layout { display: flex; gap: 20px; margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; }
         .sidebar { width: 30%; border-right: 2px solid #f1f5f9; padding-right: 15px; }
         .content { width: 70%; padding-left: 15px; }
-        .subject-group { margin-bottom: 15px; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; }
-        .subject-title { font-weight: bold; color: var(--accent); margin-bottom: 5px; cursor: pointer; }
-        .subtopic-item { font-size: 13px; padding: 5px 10px; color: #64748b; cursor: pointer; border-radius: 4px; }
+        .subject-group { margin-bottom: 15px; }
+        .subject-title { font-weight: bold; color: var(--accent); background: #eff6ff; padding: 8px; border-radius: 6px; cursor: pointer; }
+        .subtopic-item { font-size: 13px; padding: 6px 15px; cursor: pointer; border-radius: 4px; color: #64748b; }
         .subtopic-item:hover { background: #f1f5f9; color: var(--accent); }
-        pre { white-space: pre-wrap; font-size: 14px; background: #f1f5f9; padding: 20px; border-radius: 8px; border: 1px solid #cbd5e1; line-height: 1.6; }
+        pre { white-space: pre-wrap; font-size: 14px; background: #f8fafc; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; line-height: 1.6; }
+        .check-box { display: flex; align-items: center; gap: 8px; font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>⚖️ Caderno Jurídico Automático</h1>
-            <p id="status">Pronto para organizar seus estudos</p>
+            <h1>⚖️ Meu Caderno Jurídico</h1>
+            <p id="status">Configure sua aula antes de começar</p>
         </div>
 
-        <div class="controls">
-            <button class="btn-video" id="startVideo">🖥️ Gravar Vídeo-Aula (Aba + Som)</button>
-            <button class="btn-audio" id="startAudio">🎙️ Gravar Aula Presencial (Mic)</button>
+        <div class="config-panel">
+            <label class="check-box">
+                <input type="checkbox" id="autoStopCheck" checked> Parar automaticamente após 30s de silêncio?
+            </label>
+            <div class="controls">
+                <button class="btn-audio" id="startAudio">🎙️ Apenas Transcrição (Aula)</button>
+                <button class="btn-video" id="startVideo">🎥 Transcrição + Vídeo (Gravar Tela)</button>
+            </div>
         </div>
-        <button class="btn-stop" id="stopBtn" disabled>🛑 Parar e Classificar Matéria</button>
+
+        <button class="btn-stop" id="stopBtn" disabled>🛑 Parar Gravação Agora (Manual)</button>
 
         <div class="main-layout">
             <div class="sidebar">
@@ -43,15 +51,13 @@
             </div>
             <div class="content">
                 <h3>📄 Conteúdo Selecionado</h3>
-                <div id="currentNote">Selecione uma aula ao lado para visualizar.</div>
+                <div id="currentNote">Suas aulas aparecerão aqui.</div>
             </div>
         </div>
     </div>
 
     <script>
-        let recognition;
-        let transcript = "";
-        let silenceTimer;
+        let recognition, mediaRecorder, chunks = [], transcript = "", silenceTimer;
         let legalLibrary = JSON.parse(localStorage.getItem('legal_library') || '{}');
 
         renderSidebar();
@@ -61,67 +67,75 @@
             recognition.continuous = true;
             recognition.lang = 'pt-BR';
             recognition.onresult = (e) => {
-                resetSilenceTimer();
+                if (document.getElementById('autoStopCheck').checked) resetSilenceTimer();
                 let current = "";
                 for (let i = e.resultIndex; i < e.results.length; i++) {
                     current += e.results[i][0].transcript;
                 }
                 transcript = current;
-                document.getElementById('status').innerText = "🔴 Transcrevendo aula...";
+                document.getElementById('status').innerText = "🔴 Capturando aula...";
             };
         }
 
-        document.getElementById('startVideo').onclick = async () => {
-            try { 
-                await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true }); 
-                start(); 
-            } catch (e) { alert("Marque 'Compartilhar áudio' na janela que abrir!"); }
-        };
-        document.getElementById('startAudio').onclick = () => start();
-        document.getElementById('stopBtn').onclick = () => stop();
-
-        function start() {
-            transcript = "";
-            recognition.start();
-            document.getElementById('stopBtn').disabled = false;
-            resetSilenceTimer();
+        async function startRecording(withVideo) {
+            transcript = ""; chunks = [];
+            try {
+                const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+                if (withVideo) {
+                    mediaRecorder = new MediaRecorder(stream);
+                    mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
+                    mediaRecorder.onstop = () => {
+                        const blob = new Blob(chunks, { type: 'video/webm' });
+                        const a = document.createElement('a');
+                        a.href = URL.createObjectURL(blob);
+                        a.download = `Aula_Direito_${new Date().getTime()}.webm`;
+                        a.click();
+                    };
+                    mediaRecorder.start();
+                }
+                recognition.start();
+                document.getElementById('stopBtn').disabled = false;
+                document.getElementById('status').innerText = "🔴 Em gravação...";
+                if (document.getElementById('autoStopCheck').checked) resetSilenceTimer();
+            } catch (e) { alert("Você precisa permitir áudio/vídeo!"); }
         }
+
+        document.getElementById('startAudio').onclick = () => startRecording(false);
+        document.getElementById('startVideo').onclick = () => startRecording(true);
+        document.getElementById('stopBtn').onclick = () => finish();
 
         function resetSilenceTimer() {
             clearTimeout(silenceTimer);
-            silenceTimer = setTimeout(() => stop(), 40000); // 40s de silêncio
+            silenceTimer = setTimeout(() => finish(), 30000);
         }
 
-        async function stop() {
+        async function finish() {
             recognition.stop();
+            if (mediaRecorder && mediaRecorder.state !== "inactive") mediaRecorder.stop();
             clearTimeout(silenceTimer);
-            document.getElementById('status').innerText = "⏳ IA classificando matéria e subtema...";
+            document.getElementById('status').innerText = "⏳ IA organizando matéria e subtema...";
             document.getElementById('stopBtn').disabled = true;
 
-            const response = await fetch('/api/process', {
+            const res = await fetch('/api/process', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ transcription: transcript })
             });
-
-            const data = await response.json();
-            organizeNote(data.result);
+            const data = await res.json();
+            processNote(data.result);
         }
 
-        function organizeNote(aiText) {
-            let materia = "Outros";
-            let subtema = "Geral";
+        function processNote(text) {
+            let m = "Geral"; let s = "Aula";
+            if(text.includes("MATÉRIA:")) m = text.split("MATÉRIA:")[1].split('\n')[0].trim();
+            if(text.includes("SUBTEMA:")) s = text.split("SUBTEMA:")[1].split('\n')[0].trim();
 
-            if(aiText.includes("MATÉRIA:")) materia = aiText.split("MATÉRIA:")[1].split('\n')[0].trim();
-            if(aiText.includes("SUBTEMA:")) subtema = aiText.split("SUBTEMA:")[1].split('\n')[0].trim();
-
-            if(!legalLibrary[materia]) legalLibrary[materia] = {};
-            if(!legalLibrary[materia][subtema]) legalLibrary[materia][subtema] = [];
-            
-            legalLibrary[materia][subtema].push({ content: aiText, date: new Date().toLocaleDateString() });
+            if(!legalLibrary[m]) legalLibrary[m] = {};
+            if(!legalLibrary[m][s]) legalLibrary[m][s] = [];
+            legalLibrary[m][s].push({ content: text, date: new Date().toLocaleDateString() });
             localStorage.setItem('legal_library', JSON.stringify(legalLibrary));
             renderSidebar();
-            document.getElementById('status').innerText = "✅ Aula arquivada com sucesso!";
+            document.getElementById('status').innerText = "✅ Aula arquivada em " + m;
         }
 
         function renderSidebar() {
@@ -130,11 +144,11 @@
             for (let m in legalLibrary) {
                 let div = document.createElement('div');
                 div.className = 'subject-group';
-                div.innerHTML = `<div class="subject-title">${m}</div>`;
+                div.innerHTML = `<div class="subject-title">📁 ${m}</div>`;
                 for (let s in legalLibrary[m]) {
                     let item = document.createElement('div');
                     item.className = 'subtopic-item';
-                    item.innerText = `📁 ${s}`;
+                    item.innerText = `  └ 📄 ${s}`;
                     item.onclick = () => {
                         const note = legalLibrary[m][s][0];
                         document.getElementById('currentNote').innerHTML = `<h4>${m} - ${s}</h4><pre>${note.content}</pre>`;
