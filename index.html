@@ -2,68 +2,51 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Meu Caderno Jurídico Inteligente</title>
+    <title>Caderno Jurídico - Teste de Áudio</title>
     <style>
         :root { --primary: #1e293b; --accent: #4f46e5; --bg: #f8fafc; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); padding: 20px; color: #334155; }
-        .container { max-width: 1200px; margin: auto; background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
-        .config-panel { background: #f1f5f9; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #e2e8f0; }
-        .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        button { padding: 15px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 15px; transition: 0.3s; }
-        .btn-audio { background: #4f46e5; color: white; }
-        .btn-video { background: #0284c7; color: white; }
-        .btn-stop { background: #be123c; color: white; width: 100%; margin-top: 15px; display: none; }
-        .status-bar { font-weight: bold; text-align: center; padding: 12px; margin: 15px 0; border-radius: 8px; background: #fffbeb; color: #92400e; border: 1px solid #fef3c7; }
-        .main-layout { display: flex; gap: 25px; margin-top: 30px; min-height: 500px; }
-        .sidebar { width: 30%; border-right: 2px solid #f1f5f9; padding-right: 20px; }
-        .content { width: 70%; padding-left: 20px; }
-        .subject-group { margin-bottom: 15px; }
-        .subject-title { font-weight: bold; color: var(--accent); background: #eff6ff; padding: 10px; border-radius: 6px; cursor: pointer; display: flex; justify-content: space-between; }
-        .subtopic-item { font-size: 14px; padding: 8px 15px; cursor: pointer; border-bottom: 1px solid #f1f5f9; color: #64748b; transition: 0.2s; }
-        .subtopic-item:hover { background: #f8fafc; color: var(--accent); }
-        pre { white-space: pre-wrap; font-size: 15px; background: #f8fafc; padding: 25px; border-radius: 12px; border: 1px solid #e2e8f0; line-height: 1.6; color: #1e293b; }
-        .empty-state { color: #94a3b8; text-align: center; margin-top: 50px; }
+        .container { max-width: 1100px; margin: auto; background: white; padding: 25px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .monitor-box { background: #1e293b; color: #10b981; padding: 20px; border-radius: 8px; font-family: 'Courier New', monospace; min-height: 100px; margin: 15px 0; border: 3px solid #334155; overflow-y: auto; max-height: 200px; }
+        .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        button { padding: 15px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px; transition: 0.3s; }
+        .btn-start { background: #4f46e5; color: white; }
+        .btn-stop { background: #be123c; color: white; width: 100%; display: none; }
+        .sidebar { width: 300px; border-right: 1px solid #eee; padding-right: 15px; }
+        .main-layout { display: flex; gap: 20px; margin-top: 25px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <div style="text-align: center; margin-bottom: 20px;">
-            <h1>⚖️ Caderno Jurídico Inteligente</h1>
-            <p>Organização automática de matérias e subtemas</p>
-        </div>
+        <h2 style="text-align: center;">⚖️ Diagnóstico de Transcrição</h2>
         
-        <div class="config-panel">
-            <div style="margin-bottom: 15px;">
-                <label style="font-weight: bold; cursor: pointer;">
-                    <input type="checkbox" id="autoStopCheck" checked> ⏹️ Parar automaticamente após 30s de silêncio?
-                </label>
-            </div>
-            <div class="controls" id="actionButtons">
-                <button class="btn-audio" onclick="iniciar(false)">🎙️ Apenas Transcrição (Áudio)</button>
-                <button class="btn-video" onclick="iniciar(true)">🎥 Transcrição + Gravação de Vídeo</button>
-            </div>
-            <button class="btn-stop" id="stopBtn" onclick="pararManual()">🛑 Parar Gravação Agora</button>
+        <p><strong>1. Clique no botão. 2. Selecione a aba da aula. 3. Marque "Compartilhar áudio".</strong></p>
+
+        <div class="controls">
+            <button class="btn-start" onclick="iniciar(false)">🎙️ Testar Apenas Áudio</button>
+            <button class="btn-start" onclick="iniciar(true)" style="background:#0284c7">🎥 Testar Áudio + Vídeo</button>
         </div>
 
-        <div id="status" class="status-bar">Sistema pronto. Escolha um modo acima.</div>
+        <div class="monitor-box" id="monitor">
+            > Aguardando áudio... (O que o professor falar deve aparecer aqui em tempo real)
+        </div>
+
+        <button class="btn-stop" id="stopBtn" onclick="parar()">🛑 Parar e Enviar para IA</button>
 
         <div class="main-layout">
-            <div class="sidebar">
-                <h3>📚 Matérias Organizadas</h3>
-                <div id="subjectList"></div>
+            <div class="sidebar" id="subjectList">
+                <h3>📚 Suas Matérias</h3>
             </div>
-            <div class="content">
-                <h3>📄 Conteúdo da Aula</h3>
-                <div id="currentNote" class="empty-state">
-                    Nenhuma aula selecionada. Grave uma aula ou selecione uma na lateral.
-                </div>
+            <div id="content" style="flex-grow: 1;">
+                <h3>📄 Resultado da IA</h3>
+                <div id="aiResult">Aguardando processamento...</div>
             </div>
         </div>
     </div>
 
     <script>
-        let recognition, mediaRecorder, chunks = [], transcript = "", silenceTimer;
-        let legalLibrary = JSON.parse(localStorage.getItem('legal_library') || '{}');
+        let recognition, transcript = "", mediaRecorder, chunks = [];
+        let library = JSON.parse(localStorage.getItem('legal_library') || '{}');
 
         renderSidebar();
 
@@ -74,143 +57,93 @@
             recognition.lang = 'pt-BR';
 
             recognition.onresult = (e) => {
-                if (document.getElementById('autoStopCheck').checked) resetSilenceTimer();
                 let current = "";
                 for (let i = e.resultIndex; i < e.results.length; i++) {
                     current += e.results[i][0].transcript;
                 }
                 transcript = current;
-                document.getElementById('status').innerText = "🔴 Capturando áudio e transcrevendo em tempo real...";
+                // EXIBIÇÃO EM TEMPO REAL NO MONITOR PRETO
+                document.getElementById('monitor').innerText = "> ESCUTANDO: " + transcript;
             };
         }
 
-        async function iniciar(comVideo) {
-            transcript = ""; chunks = [];
+        async function iniciar(video) {
             try {
-                // Captura a tela e o som interno
+                // ESTA LINHA É A CHAVE: Abre a escolha de aba
                 const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
                 
-                if (comVideo) {
+                if(video) {
                     mediaRecorder = new MediaRecorder(stream);
                     mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
-                    mediaRecorder.onstop = salvarVideo;
+                    mediaRecorder.onstop = () => {
+                        const blob = new Blob(chunks, {type: 'video/webm'});
+                        const a = document.createElement('a');
+                        a.href = URL.createObjectURL(blob);
+                        a.download = "video_aula.webm"; a.click();
+                    };
                     mediaRecorder.start();
                 }
 
                 recognition.start();
-                document.getElementById('actionButtons').style.display = "none";
                 document.getElementById('stopBtn').style.display = "block";
-                document.getElementById('status').innerText = "🔴 Gravando! Lembre-se de dar play na sua aula.";
-                
-                if (document.getElementById('autoStopCheck').checked) resetSilenceTimer();
+                document.getElementById('monitor').innerText = "> Conectado! Dê o play na aula...";
             } catch (err) {
-                alert("Para funcionar, você deve selecionar uma aba e marcar 'Compartilhar áudio'.");
+                alert("AVISO: Você precisa selecionar uma guia e marcar 'Compartilhar áudio da guia'.");
             }
         }
 
-        function resetSilenceTimer() {
-            clearTimeout(silenceTimer);
-            silenceTimer = setTimeout(() => {
-                console.log("Silêncio detectado. Parando...");
-                pararManual();
-            }, 30000);
-        }
-
-        function pararManual() {
+        function parar() {
             recognition.stop();
-            if (mediaRecorder && mediaRecorder.state !== "inactive") mediaRecorder.stop();
-            clearTimeout(silenceTimer);
-            enviarParaIA();
+            if(mediaRecorder) mediaRecorder.stop();
+            processarIA();
         }
 
-        async function enviarParaIA() {
-            document.getElementById('status').innerText = "⏳ IA analisando a aula e criando materiais de estudo...";
-            document.getElementById('stopBtn').disabled = true;
-
+        async function processarIA() {
+            document.getElementById('aiResult').innerText = "⏳ A IA está lendo a transcrição acima e organizando...";
             try {
-                const response = await fetch('/api/process', {
+                const res = await fetch('/api/process', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ transcription: transcript })
                 });
-                const data = await response.json();
-                
-                if (data.result) {
-                    salvarNaBiblioteca(data.result);
-                    document.getElementById('status').innerText = "✅ Processado com sucesso!";
-                }
+                const data = await res.json();
+                salvar(data.result);
             } catch (e) {
-                document.getElementById('status').innerText = "❌ Erro ao conectar com a IA.";
+                document.getElementById('aiResult').innerText = "❌ Erro na IA. Verifique a chave na Vercel.";
             }
-
-            document.getElementById('actionButtons').style.display = "grid";
-            document.getElementById('stopBtn').style.display = "none";
-            document.getElementById('stopBtn').disabled = false;
         }
 
-        function salvarNaBiblioteca(rawText) {
-            let materia = "Geral";
-            let subtema = "Aula sem título";
+        function salvar(texto) {
+            let m = "Direito Geral", s = "Aula " + new Date().toLocaleTimeString();
+            const matMatch = texto.match(/MATÉRIA:\s*(.*)/i);
+            const subMatch = texto.match(/SUBTEMA:\s*(.*)/i);
+            if(matMatch) m = matMatch[1].trim();
+            if(subMatch) s = subMatch[1].trim();
 
-            // Extrai Matéria e Subtema do texto da IA
-            const materiaMatch = rawText.match(/MATÉRIA:\s*(.*)/i);
-            const subtemaMatch = rawText.match(/SUBTEMA:\s*(.*)/i);
-            
-            if (materiaMatch) materia = materiaMatch[1].trim();
-            if (subtemaMatch) subtema = subtemaMatch[1].trim();
-
-            if (!legalLibrary[materia]) legalLibrary[materia] = {};
-            if (!legalLibrary[materia][subtema]) legalLibrary[materia][subtema] = [];
-            
-            legalLibrary[materia][subtema].push({
-                content: rawText,
-                date: new Date().toLocaleDateString()
-            });
-
-            localStorage.setItem('legal_library', JSON.stringify(legalLibrary));
+            if(!library[m]) library[m] = {};
+            if(!library[m][s]) library[m][s] = [];
+            library[m][s].push(texto);
+            localStorage.setItem('legal_library', JSON.stringify(library));
             renderSidebar();
-            exibirNota(materia, subtema);
-        }
-
-        function salvarVideo() {
-            const blob = new Blob(chunks, { type: 'video/webm' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `Video_Aula_${new Date().getTime()}.webm`;
-            a.click();
+            document.getElementById('aiResult').innerHTML = `<pre style="white-space:pre-wrap;">${texto}</pre>`;
         }
 
         function renderSidebar() {
             const list = document.getElementById('subjectList');
-            list.innerHTML = "";
-            for (let m in legalLibrary) {
-                let div = document.createElement('div');
-                div.className = 'subject-group';
-                div.innerHTML = `<div class="subject-title">${m} <span>📂</span></div>`;
-                
-                let subList = document.createElement('div');
-                for (let s in legalLibrary[m]) {
-                    let item = document.createElement('div');
-                    item.className = 'subtopic-item';
-                    item.innerText = `📄 ${s}`;
-                    item.onclick = () => exibirNota(m, s);
-                    subList.appendChild(item);
+            list.innerHTML = "<h3>📚 Matérias</h3>";
+            for (let m in library) {
+                let d = document.createElement('div');
+                d.style.fontWeight = "bold"; d.style.marginTop = "10px";
+                d.innerText = "📁 " + m;
+                list.appendChild(d);
+                for (let s in library[m]) {
+                    let i = document.createElement('div');
+                    i.style.paddingLeft = "15px"; i.style.cursor = "pointer";
+                    i.innerText = "└ " + s;
+                    i.onclick = () => document.getElementById('aiResult').innerHTML = `<pre style="white-space:pre-wrap;">${library[m][s][0]}</pre>`;
+                    list.appendChild(i);
                 }
-                div.appendChild(subList);
-                list.appendChild(div);
             }
-        }
-
-        function exibirNota(m, s) {
-            const note = legalLibrary[m][s][0];
-            document.getElementById('currentNote').innerHTML = `
-                <h2>${m}</h2>
-                <h3>${s}</h3>
-                <p><small>Data da gravação: ${note.date}</small></p>
-                <hr>
-                <pre>${note.content}</pre>
-            `;
         }
     </script>
 </body>
