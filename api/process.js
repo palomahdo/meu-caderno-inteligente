@@ -20,7 +20,6 @@ export default async function handler(req, res) {
     const data = await response.json();
     const textoFinal = data.candidates[0].content.parts[0].text;
     
-    // Devolve o texto para o site salvar em "Matérias"
     res.status(200).json({ result: textoFinal });
   } catch (error) {
     res.status(500).json({ result: "Erro ao processar com a IA." });
