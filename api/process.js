@@ -2,8 +2,8 @@ export default async function handler(req, res) {
   const { transcription } = req.body;
   const apiKey = process.env.GEMINI_API_KEY;
 
-  if (!transcription || transcription.length < 5) {
-    return res.status(200).json({ result: "Áudio muito curto. Tente gravar por pelo menos 30 segundos para a IA ter contexto." });
+  if (!transcription || transcription.length < 2) {
+    return res.status(200).json({ result: "Nenhum áudio detectado pelo navegador. Verifique o microfone." });
   }
 
   try {
@@ -11,19 +11,18 @@ export default async function handler(req, res) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: "Atue como revisor jurídico. Corrija a transcrição, remova erros de português e organize em Resumo e Anki. Se o texto estiver confuso, tente deduzir o sentido jurídico. TEXTO: " + transcription }] }]
+        contents: [{ parts: [{ text: "Reescreva este texto de aula de Direito de forma clara e organizada: " + transcription }] }]
       })
     });
 
     const data = await response.json();
     
     if (data.candidates && data.candidates[0].content) {
-      const respostaIA = data.candidates[0].content.parts[0].text;
-      res.status(200).json({ result: respostaIA });
+      res.status(200).json({ result: data.candidates[0].content.parts[0].text });
     } else {
-      res.status(200).json({ result: "O Gemini recebeu o áudio, mas não conseguiu gerar o resumo. Tente falar mais claramente ou por mais tempo." });
+      res.status(200).json({ result: "A IA não conseguiu entender o áudio. Tente falar mais perto do microfone." });
     }
   } catch (error) {
-    res.status(500).json({ result: "Erro técnico na conexão. Tente novamente em instantes." });
+    res.status(500).json({ result: "Erro técnico de conexão." });
   }
 }
