@@ -1,16 +1,84 @@
-// Procure por algo similar a isso e substitua:
-async function iniciarCaptura() {
-    try {
-        // Isso força o Chrome a usar o áudio da captura de tela/guia como fonte
-        const stream = await navigator.mediaDevices.getDisplayMedia({
-            video: true,
-            audio: { echoCancellation: false, noiseSuppression: false }
-        });
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meu Caderno Inteligente</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #f3f4f6; font-family: sans-serif; }
+        #monitor { background-color: #1a1a1a; color: #4ade80; padding: 15px; border-radius: 8px; height: 150px; overflow-y: auto; font-family: monospace; }
+    </style>
+</head>
+<body class="p-4">
+    <div class="max-w-4xl mx-auto bg-white p-6 rounded-xl shadow-lg">
+        <h1 class="text-2xl font-bold mb-4 text-center">🎓 Meu Caderno Jurídico</h1>
         
-        const audioContext = new AudioContext();
-        const source = audioContext.createMediaStreamSource(stream);
-        // O resto do seu código de transcrição aqui...
-    } catch (err) {
-        console.error("Erro na captura digital: ", err);
-    }
-}
+        <div class="grid grid-cols-2 gap-4 mb-6">
+            <button onclick="iniciar()" id="btn-iniciar" class="bg-blue-600 text-white p-3 rounded-lg hover:bg-blue-700">🎙️ Iniciar Gravação</button>
+            <button onclick="parar()" id="btn-parar" class="bg-red-600 text-white p-3 rounded-lg hover:bg-red-700">⏹️ Parar e Enviar para IA</button>
+        </div>
+
+        <div id="monitor" class="mb-6"> > ESCUTANDO: aguardando início...</div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <h2 class="font-bold mb-2">📂 Matérias</h2>
+                <ul id="lista-materias" class="border p-2 rounded bg-gray-50 min-h-[100px]"></ul>
+            </div>
+            <div>
+                <h2 class="font-bold mb-2">📄 Resultado da IA</h2>
+                <div id="resultado" class="border p-4 rounded bg-white min-h-[150px] text-sm italic text-gray-600">O resumo aparecerá aqui...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let reconhecimento;
+        let textoAcumulado = "";
+
+        function iniciar() {
+            const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
+            reconhecimento = new Speech();
+            reconhecimento.lang = 'pt-BR';
+            reconhecimento.continuous = true;
+            reconhecimento.interimResults = true;
+
+            reconhecimento.onresult = (event) => {
+                let interim = "";
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    if (event.results[i].isFinal) textoAcumulado += event.results[i][0].transcript + " ";
+                    else interim += event.results[i][0].transcript;
+                }
+                document.getElementById('monitor').innerText = "> ESCUTANDO: " + textoAcumulado + interim;
+            };
+
+            reconhecimento.start();
+            document.getElementById('btn-iniciar').innerText = "🔴 Gravando...";
+        }
+
+        async function parar() {
+            reconhecimento.stop();
+            document.getElementById('resultado').innerText = "Processando com a IA, aguarde...";
+            
+            const res = await fetch('/api/process', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ transcription: textoAcumulado })
+            });
+            
+            const data = await res.json();
+            document.getElementById('resultado').innerText = data.result;
+            
+            // Adiciona na lista
+            const li = document.createElement('li');
+            li.className = "cursor-pointer p-1 hover:text-blue-600 border-b text-sm";
+            li.innerText = "L Aula " + new Date().toLocaleTimeString();
+            li.onclick = () => alert(data.result); // Faz o arquivo "abrir" num alerta
+            document.getElementById('lista-materias').appendChild(li);
+            
+            textoAcumulado = "";
+        }
+    </script>
+</body>
+</html>
