@@ -1,16 +1,14 @@
 export default async function handler(req, res) {
   const { transcription } = req.body;
+  
+  // Aqui está o segredo: ele busca a chave que você salvou na Vercel
   const apiKey = process.env.GEMINI_API_KEY;
 
-  const prompt = `Aja como um Professor de Direito. Analise esta transcrição: "${transcription}".
-  Extraia e organize EXATAMENTE neste formato:
-  MATÉRIA: [Nome da Matéria]
-  SUBTEMA: [Nome do Subtema/Tópico da aula]
-  ---
-  RESUMO: [Pontos principais da explicação]
-  ARTIGOS CITADOS: [Apenas a lista dos artigos citados, ex: Art. 5º, CF]
-  QUESTÕES FGV: [3 questões de múltipla escolha com gabarito]
-  CARDS ANKI: [Perguntas e respostas no formato: Frente;Verso]`;
+  if (!apiKey) {
+    return res.status(500).json({ error: "Chave API não encontrada no sistema." });
+  }
+
+  const prompt = `Aja como um Revisor Jurídico. Corrija termos técnicos da transcrição abaixo e organize em: Matéria, Subtema, Resumo, Artigos e Cards Anki. TRANSCRICÃO: "${transcription}"`;
 
   try {
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
@@ -18,9 +16,15 @@ export default async function handler(req, res) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
     });
+    
     const data = await response.json();
-    res.status(200).json({ result: data.candidates[0].content.parts[0].text });
+    
+    if (data.candidates && data.candidates[0].content) {
+      res.status(200).json({ result: data.candidates[0].content.parts[0].text });
+    } else {
+      res.status(500).json({ error: "A IA não devolveu uma resposta válida." });
+    }
   } catch (error) {
-    res.status(500).json({ error: "Erro na IA" });
+    res.status(500).json({ error: "Erro na conexão com a IA." });
   }
 }
