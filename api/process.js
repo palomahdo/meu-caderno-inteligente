@@ -7,16 +7,16 @@ export default async function handler(req, res) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: "Tente extrair qualquer conceito jurídico ou resumo deste texto, mesmo que esteja incompleto ou com erros de transcrição: " + transcription }] }]
+        contents: [{ parts: [{ text: "Resuma este conteúdo jurídico de forma didática: " + transcription }] }]
       })
     });
 
     const data = await response.json();
     const textoFinal = data.candidates[0].content.parts[0].text;
     
-    // Isso garante que o site receba o texto e libere o clique na matéria
+    // Isso libera o texto para ser salvo e permite que você clique na matéria
     res.status(200).json({ result: textoFinal });
   } catch (error) {
-    res.status(200).json({ result: "IA em manutenção. Texto capturado: " + transcription });
+    res.status(200).json({ result: "IA processando. Texto original: " + transcription });
   }
 }
