@@ -1,83 +1,128 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Meu Caderno Inteligente</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/dist/css/all.min.css">
     <style>
-        body { background-color: #f3f4f6; font-family: sans-serif; }
-        #monitor { background-color: #1a1a1a; color: #4ade80; padding: 15px; border-radius: 8px; height: 150px; overflow-y: auto; font-family: monospace; }
+        .monitor-bg { background-color: #0f172a; border: 2px solid #1e293b; }
+        .materia-item:hover { background-color: #f1f5f9; cursor: pointer; }
     </style>
 </head>
-<body class="p-4">
-    <div class="max-w-4xl mx-auto bg-white p-6 rounded-xl shadow-lg">
-        <h1 class="text-2xl font-bold mb-4 text-center">🎓 Meu Caderno Jurídico</h1>
+<body class="bg-slate-100 min-h-screen p-4 md:p-8">
+    <div class="max-w-6xl mx-auto space-y-6">
         
-        <div class="grid grid-cols-2 gap-4 mb-6">
-            <button onclick="iniciar()" id="btn-iniciar" class="bg-blue-600 text-white p-3 rounded-lg hover:bg-blue-700">🎙️ Iniciar Gravação</button>
-            <button onclick="parar()" id="btn-parar" class="bg-red-600 text-white p-3 rounded-lg hover:bg-red-700">⏹️ Parar e Enviar para IA</button>
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4">
+            <h1 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                <i class="fas fa-gavel text-blue-600"></i> Caderno Jurídico IA
+            </h1>
+            <div class="flex gap-2">
+                <button id="btn-iniciar" onclick="iniciarGravacao()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-full font-medium transition-all flex items-center gap-2">
+                    <i class="fas fa-microphone"></i> Testar Apenas Áudio
+                </button>
+                <button id="btn-parar" onclick="pararEEnviar()" class="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-full font-medium transition-all flex items-center gap-2">
+                    <i class="fas fa-stop"></i> Parar e Enviar para IA
+                </button>
+            </div>
         </div>
 
-        <div id="monitor" class="mb-6"> > ESCUTANDO: aguardando início...</div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-                <h2 class="font-bold mb-2">📂 Matérias</h2>
-                <ul id="lista-materias" class="border p-2 rounded bg-gray-50 min-h-[100px]"></ul>
+        <div class="monitor-bg rounded-xl p-6 shadow-inner relative min-h-[160px]">
+            <div id="status" class="text-blue-400 text-xs font-mono mb-2 uppercase tracking-widest">Aguardando comando...</div>
+            <div id="monitor-texto" class="text-slate-300 font-mono text-sm leading-relaxed">
+                > ESCUTANDO: o áudio aparecerá aqui em tempo real...
             </div>
-            <div>
-                <h2 class="font-bold mb-2">📄 Resultado da IA</h2>
-                <div id="resultado" class="border p-4 rounded bg-white min-h-[150px] text-sm italic text-gray-600">O resumo aparecerá aqui...</div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 h-fit">
+                <h2 class="font-bold text-slate-700 mb-4 flex items-center gap-2">
+                    <i class="fas fa-book text-orange-400"></i> Matérias
+                </h2>
+                <div class="space-y-2">
+                    <details open class="group">
+                        <summary class="list-none font-semibold text-sm text-slate-600 flex items-center gap-2 cursor-pointer">
+                            <i class="fas fa-folder-open text-yellow-500"></i> Direito Geral
+                        </summary>
+                        <ul id="lista-aulas" class="mt-2 ml-4 space-y-1 border-l-2 border-slate-100 pl-2">
+                            </ul>
+                    </details>
+                </div>
+            </div>
+
+            <div class="md:col-span-2 bg-white p-8 rounded-2xl shadow-sm border border-slate-200 min-h-[400px]">
+                <h2 class="font-bold text-slate-700 mb-4 flex items-center gap-2 border-b pb-2">
+                    <i class="fas fa-file-alt text-blue-500"></i> Resultado da IA
+                </h2>
+                <div id="resultado-ia" class="text-slate-600 leading-relaxed whitespace-pre-wrap">
+                    O resumo estruturado aparecerá aqui após o processamento...
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        let reconhecimento;
-        let textoAcumulado = "";
+        let recognition;
+        let fullTranscript = "";
 
-        function iniciar() {
+        function iniciarGravacao() {
             const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
-            reconhecimento = new Speech();
-            reconhecimento.lang = 'pt-BR';
-            reconhecimento.continuous = true;
-            reconhecimento.interimResults = true;
+            recognition = new Speech();
+            recognition.lang = 'pt-BR';
+            recognition.continuous = true;
+            recognition.interimResults = true;
 
-            reconhecimento.onresult = (event) => {
-                let interim = "";
-                for (let i = event.resultIndex; i < event.results.length; i++) {
-                    if (event.results[i].isFinal) textoAcumulado += event.results[i][0].transcript + " ";
-                    else interim += event.results[i][0].transcript;
-                }
-                document.getElementById('monitor').innerText = "> ESCUTANDO: " + textoAcumulado + interim;
+            recognition.onstart = () => {
+                document.getElementById('status').innerText = "Gravando Aula...";
+                document.getElementById('btn-iniciar').classList.add('animate-pulse', 'bg-red-600');
             };
 
-            reconhecimento.start();
-            document.getElementById('btn-iniciar').innerText = "🔴 Gravando...";
+            recognition.onresult = (event) => {
+                let interim = "";
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    if (event.results[i].isFinal) fullTranscript += event.results[i][0].transcript + " ";
+                    else interim += event.results[i][0].transcript;
+                }
+                document.getElementById('monitor-texto').innerText = "> ESCUTANDO: " + fullTranscript + interim;
+            };
+
+            recognition.start();
         }
 
-        async function parar() {
-            reconhecimento.stop();
-            document.getElementById('resultado').innerText = "Processando com a IA, aguarde...";
-            
-            const res = await fetch('/api/process', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ transcription: textoAcumulado })
-            });
-            
-            const data = await res.json();
-            document.getElementById('resultado').innerText = data.result;
-            
-            // Adiciona na lista
-            const li = document.createElement('li');
-            li.className = "cursor-pointer p-1 hover:text-blue-600 border-b text-sm";
-            li.innerText = "L Aula " + new Date().toLocaleTimeString();
-            li.onclick = () => alert(data.result); // Faz o arquivo "abrir" num alerta
-            document.getElementById('lista-materias').appendChild(li);
-            
-            textoAcumulado = "";
+        async function pararEEnviar() {
+            recognition.stop();
+            document.getElementById('status').innerText = "IA Processando...";
+            document.getElementById('resultado-ia').innerText = "Gerando resumo jurídico, por favor aguarde...";
+
+            try {
+                const response = await fetch('/api/process', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ transcription: fullTranscript })
+                });
+
+                const data = await response.json();
+                const textoFinal = data.result;
+                
+                document.getElementById('resultado-ia').innerText = textoFinal;
+                
+                // Adicionar na lista lateral e permitir clique
+                const lista = document.getElementById('lista-aulas');
+                const li = document.createElement('li');
+                li.className = "materia-item text-sm p-2 rounded transition-colors text-slate-600 flex items-center gap-2";
+                li.innerHTML = `<i class="fas fa-file-signature text-slate-400"></i> Aula ${new Date().toLocaleTimeString()}`;
+                
+                // Função para abrir ao clicar
+                li.onclick = () => {
+                    document.getElementById('resultado-ia').innerText = textoFinal;
+                };
+                
+                lista.prepend(li);
+                fullTranscript = "";
+            } catch (error) {
+                document.getElementById('resultado-ia').innerText = "Erro ao processar. Tente novamente.";
+            }
         }
     </script>
 </body>
